@@ -36,7 +36,7 @@ bool servo3posicao = false;
 // ------------------- Botão -------------------
 bool delaybotao = false; 
 int contador = 0; 
-int tempoUltimaPressao = 0;
+unsigned long tempoUltimaPressao = 0;
 
 // ------------------- Pinos -------------------
 const int relayPin = 5;
@@ -49,6 +49,10 @@ const int servoPin3 = 22;
 const int bluePin = 25;
 const int greenPin = 26;
 const int redPin = 27;
+
+// ------------------- Luzes -------------------
+bool luzbranca = false;
+unsigned long luzStart = 0;
 
 // ------------------- Funções CORS -------------------
 void handleOptions() {
@@ -130,9 +134,22 @@ void setup() {
   server.begin();
 }
 
+// ------------------- Acender Luz -------------------
+void acenderLuz() {
+  setColor(255,255,255);
+  luzStart = millis();
+  luzbranca = true;
+}
+
 // ------------------- Loop -------------------
 void loop() {
   server.handleClient();
+
+  // Calcular 5 minutos
+  if (luzbranca && (millis() - luzStart >= 5UL * 60UL * 1000UL)) {
+    setColor(0,0,0);
+    luzLigada = false;
+  }
 
   // Dia e Hora Atual
   struct tm timeinfo;
