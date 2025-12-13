@@ -87,9 +87,7 @@ class _ProgramaSemanalPageState extends State<ProgramaSemanalPage> {
                     ),
                     children: List.generate(24, (hora) {
                       final atividades = _programa[dia]![hora];
-                      final horaFormatada =
-                          hora.toString().padLeft(2, '0') + ':00';
-
+                      final horaFormatada = hora.toString().padLeft(2, '0') + ':00';
                       return ListTile(
                         leading: const Icon(Icons.access_time),
                         title: Text(horaFormatada),
@@ -209,22 +207,22 @@ class _ProgramaSemanalPageState extends State<ProgramaSemanalPage> {
   }
 
   Future<void> sendDataToESP32() async {
-  try {
-    const espUrl = "http://10.193.203.134/data"; // substitui pelo IP real
+    try {
+      const espUrl = "http://10.154.162.133/data";
 
-    final payload = {"dados": dadosGerados};
+      final payload = {"dados": dadosGerados};
 
-    final response = await http.post(
-      Uri.parse(espUrl),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(payload),
-    );
+      final response = await http.post(
+        Uri.parse(espUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(payload),
+      );
 
-    print("Resposta do ESP32: ${response.statusCode} ${response.body}");
-  } catch (e) {
-    print("Erro a enviar para ESP32: $e");
+      print("Resposta do ESP32: ${response.statusCode} ${response.body}");
+    } catch (e) {
+      print("Erro a enviar para ESP32: $e");
+    }
   }
-}
 
   void _gerarDados() async {
     dadosGerados.clear();

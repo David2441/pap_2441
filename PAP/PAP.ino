@@ -21,8 +21,8 @@ const char* password   = "86754231";
 
 // NTP
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 3600;  
-const int   daylightOffset_sec = 3600;     
+const long  gmtOffset_sec = 0;  
+const int   daylightOffset_sec = 0;     
 
 WebServer server(80);
 
@@ -99,6 +99,10 @@ void handlePost() {
     contadorEntradas++;
   }
 
+  Serial.println(entradas[0][0] + ", " + entradas[0][1] + ", " + entradas[0][2] + ", " + entradas[0][3]);
+  Serial.println(entradas[1][0] + ", " + entradas[1][1] + ", " + entradas[1][2] + ", " + entradas[1][3]);
+  Serial.println(entradas[2][0] + ", " + entradas[2][1] + ", " + entradas[2][2] + ", " + entradas[2][3]);
+
   server.send(200, "application/json", "{\"status\":\"recebido\"}");
 }
 
@@ -134,13 +138,6 @@ void setup() {
   server.begin();
 }
 
-// ------------------- Acender Luz -------------------
-void acenderLuz() {
-  setColor(255,255,255);
-  luzStart = millis();
-  luzbranca = true;
-}
-
 // ------------------- Loop -------------------
 void loop() {
   server.handleClient();
@@ -148,7 +145,7 @@ void loop() {
   // Calcular 5 minutos
   if (luzbranca && (millis() - luzStart >= 5UL * 60UL * 1000UL)) {
     setColor(0,0,0);
-    luzLigada = false;
+    luzbranca = false;
   }
 
   // Dia e Hora Atual
@@ -164,20 +161,7 @@ void loop() {
   }
 
   // Programa Semanal
-  for (int i = 0; i < contadorEntradas; i++) {
-    if (entradas[i][0] == diaAtual && entradas[i][1].toInt() == horaAtual && minAtual == 0) {
-      if (entradas[i][2] == "Ibuprofeno") {
-        int qtd = entradas[i][3].toInt();
-        dispensarIbuprofeno(qtd);
-      } else if (entradas[i][2] == "Paracetamol") {
-        int qtd = entradas[i][3].toInt();
-        dispensarParacetamol(qtd);
-      } else if (entradas[i][2] == "Sedatif") {
-        int qtd = entradas[i][3].toInt();
-        dispensarSedatif(qtd);
-      }
-    }
-  }
+  if (minAtual == 57) dispensarMedicamentos(diaAtual, horaAtual);
 
   // Botão 1
   int estado = digitalRead(botao1Pin);
@@ -220,9 +204,7 @@ void loop() {
   // Botão 2
   estado = digitalRead(botao2Pin);
   if (estado == LOW) {
-    digitalWrite(relayPin, HIGH);
-    delay(150000);
-    digitalWrite(relayPin, LOW);
+    dispensarAgua(false);
   }
 }
 
@@ -233,6 +215,54 @@ void setColor(int red, int green, int blue) {
   analogWrite(bluePin, blue);
 }
 
+// ------------------- Dispensador Genérico  -------------------
+void dispensarMedicamentos(String dia, int hora) {
+  bool dispensouAlgum = false;
+  for (int i = 0; i < contadorEntradas; i++) {
+    if (entradas[i][0] == dia && ((entradas[i][1].toInt() == 0 ? 23 : entradas[i][1].toInt() - 1) == hora)) {
+      dispensouAlgum = true;
+      int qtd = entradas[i][3].toInt();
+      if (entradas[i][2] == "Ibuprofeno") dispensarIbuprofeno(qtd);
+      else if (entradas[i][2] == "Paracetamol") dispensarParacetamol(qtd);
+      else if (entradas[i][2] == "Sedatif") dispensarSedatif(qtd);
+    }
+  }
+
+  if (dispensouAlgum) dispensarAgua(true);
+}
+
+// ------------------- Água, Buzzer e Luz -------------------
+void dispensarAgua(bool ativarbuzzer) {
+  // Dispensar Água
+  digitalWrite(relayPin, HIGH);
+  delay(150000);
+  digitalWrite(relayPin, LOW);
+
+  // Buzzer
+  if (ativarbuzzer) {
+    digitalWrite(buzzerPin, HIGH);
+    delay(200);
+    digitalWrite(buzzerPin, LOW);
+    delay(500);
+    digitalWrite(buzzerPin, HIGH);
+    delay(200);
+    digitalWrite(buzzerPin, LOW);
+    delay(500);
+    digitalWrite(buzzerPin, HIGH);
+    delay(500);
+    digitalWrite(buzzerPin, LOW);
+  }
+
+  acenderLuz();
+}
+
+// ------------------- Acender Luz -------------------
+void acenderLuz() {
+  setColor(255,255,255);
+  luzStart = millis();
+  luzbranca = true;
+}
+
 // ------------------- Dispensar Ipobrufeno -------------------
 void dispensarIbuprofeno(int quantidade) {
   // Dispensar Medicamento
@@ -241,11 +271,6 @@ void dispensarIbuprofeno(int quantidade) {
     servo1posicao = !servo1posicao;
     delay(1000);
   }
-
-  // Dispensar Água
-  digitalWrite(relayPin, HIGH);
-  delay(150000);
-  digitalWrite(relayPin, LOW);
 }
 
 // ------------------- Dispensar Paracetamol -------------------
@@ -256,11 +281,6 @@ void dispensarParacetamol(int quantidade) {
     servo2posicao = !servo2posicao;
     delay(1000);
   }
-
-  // Dispensar Água
-  digitalWrite(relayPin, HIGH);
-  delay(150000);
-  digitalWrite(relayPin, LOW);
 }
 
 // ------------------- Dispensar Sedatif -------------------
@@ -271,9 +291,4 @@ void dispensarSedatif(int quantidade) {
     servo3posicao = !servo3posicao;
     delay(1000);
   }
-
-  // Dispensar Água
-  digitalWrite(relayPin, HIGH);
-  delay(150000);
-  digitalWrite(relayPin, LOW);
 }
